@@ -17,6 +17,14 @@ import ta  # Technical Analysis library for additional indicators
 logger = logging.getLogger(__name__)
 
 class ForecastModel:
+    def _validate_data(self, X, y=None):
+        """Raise ValueError if X or y contains all NaN or all zero rows."""
+        import numpy as np
+        if np.isnan(X).all() or np.all(X == 0):
+            raise ValueError("All features are NaN or zero. Check your input data.")
+        if y is not None:
+            if np.isnan(y).all() or np.all(y == 0):
+                raise ValueError("All targets are NaN or zero. Check your input data.")
     def predict_future(self, df):
         """
         Predict the next market cap value using the most recent data.
@@ -104,21 +112,29 @@ class ForecastModel:
     def train(self, df):
         """Train the model using historical market cap data"""
         logger.info("Starting model training...")
-        
         # Create features
         df_processed = self._create_features(df)
+        # Drop all rows with any NaN or inf values
+        df_processed = df_processed.replace([np.inf, -np.inf], np.nan).dropna()
         X, y = self._prepare_data(df_processed)
-        
+        # Validate data
+        self._validate_data(X, y)
         # Split data
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, shuffle=False
         )
-        
+        # Validate split data
+        self._validate_data(X_train, y_train)
+        self._validate_data(X_test, y_test)
         # Initialize scaler
         self.scaler = StandardScaler()
         X_train_scaled = self.scaler.fit_transform(X_train)
         X_test_scaled = self.scaler.transform(X_test)
-        
+        # Check for NaN or inf after scaling
+        if np.isnan(X_train_scaled).any() or np.isinf(X_train_scaled).any():
+            raise ValueError("NaN or inf detected in X_train_scaled after scaling.")
+        if np.isnan(X_test_scaled).any() or np.isinf(X_test_scaled).any():
+            raise ValueError("NaN or inf detected in X_test_scaled after scaling.")
         # Initialize model based on type
         if self.model_type == 'rf':
             self.model = RandomForestRegressor(n_estimators=200, random_state=42)
@@ -132,10 +148,8 @@ class ForecastModel:
             self.model = SVR(kernel='rbf', C=1.0)
         else:
             raise ValueError("Unsupported model type. Choose 'rf', 'linear', 'ridge', 'lasso', or 'svr'")
-        
         # Train model
         self.model.fit(X_train_scaled, y_train)
-        
         # Calculate metrics
         y_pred = self.model.predict(X_test_scaled)
         self.metrics = {
@@ -143,7 +157,6 @@ class ForecastModel:
             'rmse': np.sqrt(mean_squared_error(y_test, y_pred)),
             'mape': mean_absolute_percentage_error(y_test, y_pred) * 100
         }
-        
         # Store feature importance for RF model
         if self.model_type == 'rf':
             features = ['market_cap', 'MA7', 'MA30', 'std_dev', 'momentum', 'roc']
@@ -151,7 +164,6 @@ class ForecastModel:
                 'feature': features,
                 'importance': self.model.feature_importances_
             }).sort_values('importance', ascending=False)
-        
         logger.info(f"Model training completed. MAPE: {self.metrics['mape']:.2f}%")
         return X_test_scaled, y_test
 

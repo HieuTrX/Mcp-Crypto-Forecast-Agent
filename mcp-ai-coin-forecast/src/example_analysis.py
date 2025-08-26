@@ -103,7 +103,7 @@ def analyze_single_coin_multiple_timeframes(coin_id='bitcoin'):
                 )
                 
                 # Get data
-                raw_data = get_historical_market_cap(coin_id=coin_id)
+                raw_data = get_historical_market_cap(coin_id=coin_id, days=120)
                 if not raw_data:
                     logger.warning(f"No data received for {timeframe}")
                     continue

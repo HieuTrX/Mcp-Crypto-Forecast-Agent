@@ -52,12 +52,32 @@ class Backtester:
                     'results': []
                 }
             
+            print(f"[DEBUG] Backtester input data shape: {self.data.shape}")
+            print(f"[DEBUG] Backtester input data head:\n{self.data.head()}\n")
             for i in range(len(self.data) - window_size - 1):
                 # Get the training window
                 train_data = self.data.iloc[i:i+window_size].copy()
+                print(f"[DEBUG] Window {i}: train_data shape before features: {train_data.shape}")
+                print(f"[DEBUG] Window {i}: train_data head before features:\n{train_data.head()}\n")
                 try:
+                    # Feature engineering debug (if available)
+                    if hasattr(self.model, '_create_features'):
+                        features_df = self.model._create_features(train_data)
+                        print(f"[DEBUG] Window {i}: train_data shape after features: {features_df.shape}")
+                        print(f"[DEBUG] Window {i}: train_data head after features:\n{features_df.head()}\n")
+                        # Check for NaN/inf columns
+                        nan_cols = features_df.columns[features_df.isna().any()].tolist()
+                        inf_cols = features_df.columns[(features_df == np.inf).any() | (features_df == -np.inf).any()].tolist()
+                        if nan_cols:
+                            print(f"[DEBUG] Window {i}: Columns with NaN: {nan_cols}")
+                        if inf_cols:
+                            print(f"[DEBUG] Window {i}: Columns with inf: {inf_cols}")
                     # Train model on this window
-                    self.model.train(train_data)
+                    try:
+                        self.model.train(train_data)
+                    except ValueError as ve:
+                        logger.warning(f"Skipping window {i} due to invalid data: {str(ve)}")
+                        continue
                     # Make prediction
                     prediction = self.model.predict_future(train_data)
                     # Get actual next value
@@ -80,6 +100,7 @@ class Backtester:
                     logger.warning(f"Error in window {i}: {str(e)}")
                     continue
             # Calculate overall metrics
+            print(f"[DEBUG] Number of valid backtesting results: {len(self.results)}")
             self._calculate_metrics()
             logger.info("Backtesting completed successfully")
             return self.get_results()

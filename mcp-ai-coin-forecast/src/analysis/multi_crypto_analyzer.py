@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any
 import logging
@@ -33,10 +34,11 @@ class MultiCryptoAnalyzer:
         """Analyze a single cryptocurrency"""
         try:
             # Fetch data
+            # Use 60 days for all timeframes for more data
             raw_data = get_historical_market_cap(
                 coin_id=coin_id,
                 vs_currency='usd',
-                days=365 if self.timeframe == 'daily' else 30
+                days=60
             )
             
             if not raw_data:
