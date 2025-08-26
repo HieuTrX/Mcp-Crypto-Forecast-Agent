@@ -55,40 +55,34 @@ class Backtester:
             for i in range(len(self.data) - window_size - 1):
                 # Get the training window
                 train_data = self.data.iloc[i:i+window_size].copy()
-                
                 try:
                     # Train model on this window
                     self.model.train(train_data)
-                
-                # Make prediction
-                prediction = self.model.predict_future(train_data)
-                
-                # Get actual next value
-                actual = self.data.iloc[i+window_size+1]['market_cap']
-                
-                # Calculate error
-                error = abs(prediction - actual)
-                error_pct = (error / actual) * 100 if actual != 0 else float('inf')
-                
-                # Store results
-                self.results.append({
-                    'date': self.data.iloc[i+window_size+1]['date'],
-                    'predicted_value': prediction,
-                    'actual_value': actual,
-                    'error': error,
-                    'error_pct': error_pct
-                })
-                
-            except Exception as e:
-                logger.warning(f"Error in window {i}: {str(e)}")
-                continue
-            
+                    # Make prediction
+                    prediction = self.model.predict_future(train_data)
+                    # Get actual next value
+                    actual = self.data.iloc[i+window_size+1]['market_cap']
+                    # Calculate error
+                    error = abs(prediction - actual)
+                    if actual == 0 or pd.isna(actual):
+                        error_pct = float('nan')
+                    else:
+                        error_pct = (error / actual) * 100
+                    # Store results
+                    self.results.append({
+                        'date': self.data.iloc[i+window_size+1]['date'],
+                        'predicted_value': prediction,
+                        'actual_value': actual,
+                        'error': error,
+                        'error_pct': error_pct
+                    })
+                except Exception as e:
+                    logger.warning(f"Error in window {i}: {str(e)}")
+                    continue
             # Calculate overall metrics
             self._calculate_metrics()
-            
             logger.info("Backtesting completed successfully")
             return self.get_results()
-            
         except Exception as e:
             logger.error(f"Backtesting failed: {str(e)}")
             return {

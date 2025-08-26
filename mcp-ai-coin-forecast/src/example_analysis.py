@@ -5,10 +5,10 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 
-from src.analysis.multi_crypto_analyzer import MultiCryptoAnalyzer
-from src.models.forecast_model import ForecastModel
-from src.utils.backtesting import Backtester
-from src.data.fetch_data import get_historical_market_cap, validate_coin
+from analysis.multi_crypto_analyzer import MultiCryptoAnalyzer
+from models.forecast_model import ForecastModel
+from utils.backtesting import Backtester
+from data.fetch_data import get_historical_market_cap, validate_coin
 import logging
 import json
 import pandas as pd
@@ -26,7 +26,10 @@ def process_backtest_results(timeframe, df, results, backtest_results):
     # Print current and predicted values
     current_value = df['market_cap'].iloc[-1]
     predicted_value = results[timeframe]['prediction']
-    predicted_change = ((predicted_value - current_value) / current_value * 100)
+    if current_value == 0 or pd.isna(current_value):
+        predicted_change = float('nan')
+    else:
+        predicted_change = ((predicted_value - current_value) / current_value * 100)
 
     print(f"\nTimeframe: {timeframe}")
     print(f"Current market cap: ${current_value:,.2f}")

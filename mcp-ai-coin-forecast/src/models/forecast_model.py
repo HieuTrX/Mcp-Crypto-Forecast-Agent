@@ -17,6 +17,24 @@ import ta  # Technical Analysis library for additional indicators
 logger = logging.getLogger(__name__)
 
 class ForecastModel:
+    def predict_future(self, df):
+        """
+        Predict the next market cap value using the most recent data.
+        Args:
+            df (pd.DataFrame): DataFrame with at least as many rows as the lookback window
+        Returns:
+            float: Predicted next market cap value
+        """
+        if self.model is None:
+            raise Exception("Model has not been trained yet.")
+        # Create features for the latest window
+        df_processed = self._create_features(df)
+        X, _ = self._prepare_data(df_processed)
+        # Use the last available feature row for prediction
+        X_last = X[-1].reshape(1, -1)
+        X_last_scaled = self.scaler.transform(X_last)
+        pred = self.model.predict(X_last_scaled)
+        return float(pred[0])
     def __init__(self, model_type='rf', forecast_days=7, timeframe='daily'):
         """
         Initialize the forecast model.
@@ -57,19 +75,15 @@ class ForecastModel:
     def _create_features(self, df):
         """Create features for time series forecasting"""
         df = df.copy()
-        
         # Technical indicators
         df['MA7'] = df['market_cap'].rolling(window=7).mean()
         df['MA30'] = df['market_cap'].rolling(window=30).mean()
         df['std_dev'] = df['market_cap'].rolling(window=7).std()
-        
         # Momentum
         df['momentum'] = df['market_cap'].pct_change(periods=7)
         df['roc'] = df['market_cap'].pct_change(periods=14)
-        
         # Fill NaN values
-        df = df.fillna(method='bfill')
-        
+        df = df.bfill()
         return df
 
     def _prepare_data(self, df):

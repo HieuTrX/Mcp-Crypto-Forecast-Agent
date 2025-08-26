@@ -4,4 +4,7 @@ requests
 scikit-learn
 matplotlib
 tensorflow
-dotenv
+python-dotenv
+seaborn
+tqdm
+ta

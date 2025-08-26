@@ -4,9 +4,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any
 import logging
 from datetime import datetime
-from src.data.fetch_data import get_historical_market_cap
-from src.models.forecast_model import ForecastModel
-from src.utils.backtesting import Backtester
+from data.fetch_data import get_historical_market_cap
+from models.forecast_model import ForecastModel
+from utils.backtesting import Backtester
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
@@ -111,8 +111,10 @@ class MultiCryptoAnalyzer:
                 continue
                 
             metrics = result['backtest_results']['metrics']
-            pred_change = ((result['predictions'] - result['current_value']) 
-                         / result['current_value'] * 100)
+            if result['current_value'] == 0 or pd.isna(result['current_value']):
+                pred_change = float('nan')
+            else:
+                pred_change = ((result['predictions'] - result['current_value']) / result['current_value'] * 100)
             
             summary_data.append({
                 'coin_id': coin_id,
@@ -141,8 +143,10 @@ class MultiCryptoAnalyzer:
         for coin_id, result in self.results.items():
             if not result:
                 continue
-            pred_change = ((result['predictions'] - result['current_value']) 
-                         / result['current_value'] * 100)
+            if result['current_value'] == 0 or pd.isna(result['current_value']):
+                pred_change = float('nan')
+            else:
+                pred_change = ((result['predictions'] - result['current_value']) / result['current_value'] * 100)
             changes.append(pred_change)
             coins.append(coin_id)
         
